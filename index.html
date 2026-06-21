@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyFlow | พยากรณ์อากาศและแผนที่อัจฉริยะ</title>
+
+    <!-- Meta tags for SEO -->
+    <meta name="description"
+        content="สัมผัสประสบการณ์การพยากรณ์อากาศยุคใหม่ด้วยแผนที่ตอบโต้ คาดการณ์อุณหภูมิล่วงหน้า 7 วัน และกราฟเปรียบเทียบข้อมูลที่ละเอียดที่สุด">
+
+    <!-- Google Fonts: Inter (English) & Sarabun (Thai) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet.js Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar: ค้นหา และ ข้อมูลสภาพอากาศปัจจุบัน -->
+        <aside class="sidebar">
+            <header class="app-header">
+                <div class="logo">
+                    <i data-lucide="cloud-lightning" class="logo-icon"></i>
+                    <h1>SkyFlow</h1>
+                </div>
+            </header>
+
+            <!-- Search Area -->
+            <div class="search-wrapper">
+                <div class="search-bar">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="search-input" placeholder="ค้นหาจังหวัด, เมือง, ประเทศ..."
+                        autocomplete="off">
+                    <button id="geo-btn" title="ค้นหาจากพิกัดปัจจุบันของคุณ">
+                        <i data-lucide="locate-fixed"></i>
+                    </button>
+                </div>
+                <div id="suggestions-box" class="suggestions-box hidden"></div>
+            </div>
+
+            <!-- Quick Locations -->
+            <div class="quick-locations">
+                <button class="quick-loc-btn" data-lat="13.7563" data-lon="100.5018">กรุงเทพฯ</button>
+                <button class="quick-loc-btn" data-lat="35.6762" data-lon="139.6503">โตเกียว</button>
+                <button class="quick-loc-btn" data-lat="51.5074" data-lon="-0.1278">ลอนดอน</button>
+                <button class="quick-loc-btn" data-lat="40.7128" data-lon="-74.0060">นิวยอร์ก</button>
+            </div>
+
+            <!-- Current Weather Information Container -->
+            <div class="weather-current-card" id="current-weather">
+                <div class="loader-container" id="current-loader">
+                    <div class="spinner"></div>
+                </div>
+
+                <div class="weather-content hidden" id="current-weather-content">
+                    <div class="location-details">
+                        <h2 id="location-name">กำลังระบุตำแหน่ง...</h2>
+                        <span id="current-date">วันจันทร์ที่ 22 มิถุนายน</span>
+                    </div>
+
+                    <div class="temperature-summary">
+                        <div class="temp-main">
+                            <span id="main-temp">--</span><span class="temp-unit">°C</span>
+                        </div>
+                        <div class="weather-status-wrapper">
+                            <div id="weather-icon-main" class="weather-icon-large">
+                                <i data-lucide="cloud"></i>
+                            </div>
+                            <span id="weather-desc" class="weather-desc">กำลังโหลด...</span>
+                        </div>
+                    </div>
+
+                    <div class="weather-meta-grid">
+                        <div class="meta-item">
+                            <i data-lucide="thermometer"></i>
+                            <div class="meta-info">
+                                <span class="meta-label">รู้สึกเหมือน</span>
+                                <span class="meta-value" id="feel-temp">--°C</span>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <i data-lucide="droplets"></i>
+                            <div class="meta-info">
+                                <span class="meta-label">ความชื้น</span>
+                                <span class="meta-value" id="humidity">--%</span>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <i data-lucide="wind"></i>
+                            <div class="meta-info">
+                                <span class="meta-label">ความเร็วลม</span>
+                                <span class="meta-value" id="wind-speed">-- กม./ชม.</span>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <i data-lucide="gauge"></i>
+                            <div class="meta-info">
+                                <span class="meta-label">ความกดอากาศ</span>
+                                <span class="meta-value" id="pressure">-- hPa</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Extra Weather details -->
+            <div class="weather-extra-card hidden" id="weather-extra">
+                <div class="sun-cycle">
+                    <div class="sun-item">
+                        <i data-lucide="sunrise" class="sunrise-icon"></i>
+                        <div>
+                            <span class="sun-label">พระอาทิตย์ขึ้น</span>
+                            <span class="sun-time" id="sunrise-time">--:--</span>
+                        </div>
+                    </div>
+                    <div class="sun-item">
+                        <i data-lucide="sunset" class="sunset-icon"></i>
+                        <div>
+                            <span class="sun-label">พระอาทิตย์ตก</span>
+                            <span class="sun-time" id="sunset-time">--:--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="uv-wrapper">
+                    <div class="uv-index-container">
+                        <span class="uv-label">ดัชนี UV สูงสุด:</span>
+                        <span class="uv-value" id="uv-index">--</span>
+                        <span class="uv-level" id="uv-level">--</span>
+                    </div>
+                    <div class="uv-bar-bg">
+                        <div class="uv-bar-fill" id="uv-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credits Section -->
+            <footer class="app-footer">
+                <span class="credit-text">
+                    Crafted with <i data-lucide="heart" class="heart-icon"></i> by <span class="credit-brand">COMCOM</span>
+                </span>
+                <span class="footer-meta">© 2026 SkyFlow • Weather Dashboard</span>
+            </footer>
+        </aside>
+
+        <!-- Main Content Area: แผนที่, กราฟ, และพยากรณ์รายชั่วโมง/รายวัน -->
+        <main class="main-content">
+            <!-- Leaflet Map Panel -->
+            <section class="panel map-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="map-pin"></i>
+                        <h2>แผนที่พยากรณ์สภาพอากาศ</h2>
+                    </div>
+                    <p class="panel-subtitle">คลิกหรือลากหมุดบนแผนที่เพื่อดูข้อมูลสภาพอากาศในพื้นที่นั้น</p>
+                </div>
+                <div class="map-container-wrapper">
+                    <div id="map"></div>
+                </div>
+            </section>
+
+            <!-- Hourly Forecast (Scrollable) -->
+            <section class="panel hourly-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="clock"></i>
+                        <h2>พยากรณ์รายชั่วโมง (24 ชม.)</h2>
+                    </div>
+                </div>
+                <div class="hourly-scroll-container" id="hourly-forecast-list">
+                    <!-- จะถูกเติมด้วย JS -->
+                </div>
+            </section>
+
+            <!-- Temperature Trends & Rain Probability Chart -->
+            <section class="panel chart-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="line-chart"></i>
+                        <h2>แนวโน้มอุณหภูมิและโอกาสเกิดฝน</h2>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="forecast-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- 7-Day Forecast -->
+            <section class="panel daily-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="calendar"></i>
+                        <h2>พยากรณ์ล่วงหน้า 7 วัน</h2>
+                    </div>
+                </div>
+                <div class="daily-forecast-list" id="daily-forecast-list">
+                    <!-- จะถูกเติมด้วย JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Leaflet.js Map JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Chart.js for beautiful visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Core App Logic -->
+    <script src="app.js"></script>
+</body>
+
+</html>
